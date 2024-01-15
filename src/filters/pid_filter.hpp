@@ -12,8 +12,22 @@ struct PIDFilter {
     float measurement;
     float feedForward;
 
-    float filter(float dt) {
-        float error = setpoint - measurement;
+    float wrap_error(float error) {
+        bool wrapped = false;
+        while (error >= 3.141592) {
+            error -= 2 * 3.141592;
+            wrapped = true;
+        }
+        while (error < -3.141592) {
+            error += 2 * 3.141592;
+            wrapped = true;
+        }
+        if (wrapped) error *= -1;
+        return error;
+    }
+
+    float filter(float dt, bool wrap = false) {
+        float error = wrap ? wrap_error(setpoint - measurement) : setpoint - measurement;
         sumError += error * dt;
         float output = (K[0] * error) + (K[2] * ((error - prevError) / dt));
             // + (K[1] * sumError)
