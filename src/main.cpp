@@ -248,8 +248,6 @@ int main() {
         output = flywheel.filter(0.001);
         can.write_motor_norm(CAN_2, m_id, C620, output);
 
-        can.write_motor_norm(CAN_2, 5, C610, dr16.get_r_stick_x());
-
         // Write to actuators
         if (!dr16.is_connected() || dr16.get_l_switch() == 1) {
             // SAFETY ON
