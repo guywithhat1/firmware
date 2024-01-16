@@ -56,64 +56,64 @@ void RefSystem::read() {
 
         switch (frame.commandID) {
         case GAME_STATUS:
-            ref_data.game_status.initialize_from_data(frame.data);
+            data.game_status.initialize_from_data(frame.data);
             break;
         case GAME_RESULT:
-            ref_data.game_result.initialize_from_data(frame.data);
+            data.game_result.initialize_from_data(frame.data);
             break;
         case ROBOT_HEALTH:
-            ref_data.robot_health.initialize_from_data(frame.data);
+            data.robot_health.initialize_from_data(frame.data);
             break;
         case SITE_EVENT:
-            ref_data.site_event.initialize_from_data(frame.data);
+            data.site_event.initialize_from_data(frame.data);
             break;
         case PROJECTILE_SUPPLIER:
-            ref_data.proj_supplier.initialize_from_data(frame.data);
+            data.proj_supplier.initialize_from_data(frame.data);
             break;
         case REFEREE_WARNING:
-            ref_data.ref_warning.initialize_from_data(frame.data);
+            data.ref_warning.initialize_from_data(frame.data);
             break;
         case DART_LAUNCH:
-            ref_data.dart_launch.initialize_from_data(frame.data);
+            data.dart_launch.initialize_from_data(frame.data);
             break;
         case ROBOT_PERFORMANCE:
-            ref_data.robot_performance.initialize_from_data(frame.data);
+            data.robot_performance.initialize_from_data(frame.data);
             break;
         case POWER_HEAT:
-            ref_data.power_heat.initialize_from_data(frame.data);
+            data.power_heat.initialize_from_data(frame.data);
             break;
         case ROBOT_POSITION:
-            ref_data.position.initialize_from_data(frame.data);
+            data.position.initialize_from_data(frame.data);
             break;
         case ROBOT_BUFF:
-            ref_data.robot_buff.initialize_from_data(frame.data);
+            data.robot_buff.initialize_from_data(frame.data);
             break;
         case AIR_SUPPORT_TIME:
-            ref_data.air_support_time.initialize_from_data(frame.data);
+            data.air_support_time.initialize_from_data(frame.data);
             break;
         case DAMAGE_STATUS:
-            ref_data.damage_status.initialize_from_data(frame.data);
+            data.damage_status.initialize_from_data(frame.data);
             break;
         case LAUNCHING_EVENT:
-            ref_data.launching_event.initialize_from_data(frame.data);
+            data.launching_event.initialize_from_data(frame.data);
             break;
         case PROJECTILE_ALLOWANCE:
-            ref_data.proj_allowance.initialize_from_data(frame.data);
+            data.proj_allowance.initialize_from_data(frame.data);
             break;
         case RFID:
-            ref_data.rfid.initialize_from_data(frame.data);
+            data.rfid.initialize_from_data(frame.data);
             break;
         case DART_COMMAND:
-            ref_data.dart_command.initialize_from_data(frame.data);
+            data.dart_command.initialize_from_data(frame.data);
             break;
         case GROUND_ROBOT_POSITION:
-            ref_data.ground_positions.initialize_from_data(frame.data);
+            data.ground_positions.initialize_from_data(frame.data);
             break;
         case RADAR_PROGRESS:
-            ref_data.radar_progress.initialize_from_data(frame.data);
+            data.radar_progress.initialize_from_data(frame.data);
             break;
         case INTER_ROBOT_COMM:
-            ref_data.inter_robot_comms[inter_robot_comm_index].initialize_from_data(frame);
+            data.inter_robot_comms[inter_robot_comm_index].initialize_from_data(frame);
             inter_robot_comm_index++;
             if (inter_robot_comm_index >= REF_MAX_COMM_BUFFER_SIZE)
                 inter_robot_comm_index = 0;
@@ -146,8 +146,8 @@ void RefSystem::write(uint8_t* packet, uint8_t length) {
     packet[4] = generateCRC8(packet, 4);    // set CRC
 
     // update sender ID
-    packet[9] = ref_data.robot_performance.robot_ID;
-    packet[10] = ref_data.robot_performance.robot_ID >> 8;
+    packet[9] = data.robot_performance.robot_ID;
+    packet[10] = data.robot_performance.robot_ID >> 8;
 
     // update tail
     uint16_t footerCRC = generateCRC16(packet, 13 + data_length);
@@ -165,12 +165,13 @@ void RefSystem::write(uint8_t* packet, uint8_t length) {
 
 bool RefSystem::read_frame_header(Frame& frame) {
     // read and verify header
-    int bytesRead = Serial2.readBytes(raw_buffer, FrameHeader::packet_size);
-    if (bytesRead != FrameHeader::packet_size) {
-        Serial.println("Couldnt read enough bytes for Header");
-        packets_failed++;
+    if (Serial2.available() < FrameHeader::packet_size) {
+        // Serial.println("Couldnt read enough bytes for Header");
+        // packets_failed++;
         return false;
     }
+
+    int bytesRead = Serial2.readBytes(raw_buffer, FrameHeader::packet_size);
 
     // set read data
     frame.header.SOF = raw_buffer[0];

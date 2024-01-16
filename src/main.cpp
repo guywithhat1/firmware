@@ -4,6 +4,7 @@
 #include "utils/timing.hpp"
 #include "comms/rm_can.hpp"
 #include "sensors/dr16.hpp"
+#include "sensors/RefSystem.hpp"
 #include "filters/pid_filter.hpp"
 
 
@@ -50,6 +51,8 @@
 // declare any 'global' variables here
 DR16 dr16;
 rm_CAN can;
+RefSystem ref;
+
 static SPISettings settings(1000000, MT6835_BITORDER, SPI_MODE3);
 
 Timer loop_timer;
@@ -124,6 +127,7 @@ int main() {
     pinMode(13, OUTPUT);
     dr16.init();
     can.init();
+    ref.init();
 
     // Encoder setup
     int nCS_yaw = 37; // 37 or 36 (enc 1, enc 2)
@@ -153,16 +157,21 @@ int main() {
     float output;
     float m_id;
 
+    long long loopc;
+
     // main loop
     while (true) {
+        loopc++;
+
         dr16.read();
         can.read();
+        if (!(loopc % 1)) ref.read();
 
         float yaw_raw = read_enc(nCS_yaw);
         float yaw_ref = wrap_angle(yaw_raw - YAW_ZERO_ANGLE);
         float pitch_raw = read_enc(nCS_pitch);
         float pitch_ref = wrap_angle(pitch_raw - PITCH_ZERO_ANGLE);
-        Serial.printf("yaw enc: %f     pitch enc: %f\n", yaw_raw, pitch_raw);
+        // Serial.printf("yaw enc: %f     pitch enc: %f\n", yaw_raw, pitch_raw);
 
         // Read DR16
         float x = -dr16.get_l_stick_x();
@@ -171,12 +180,22 @@ int main() {
         float pitch_js = dr16.get_r_stick_y();
         float yaw_js = dr16.get_r_stick_x();
 
+        // Power limiting
+        float power_buffer = ref.data.power_heat.buffer_energy;
+        float power_limit_ratio = 1.0;
+        float power_buffer_limit_thresh = 60.0;
+	    float power_buffer_critical_thresh = 30.0;
+        if (power_buffer < power_buffer_limit_thresh) {
+            power_limit_ratio = constrain((power_buffer - power_buffer_critical_thresh) / power_buffer_limit_thresh, 0.0, 1.0);
+        }
+        Serial.println(power_buffer);
+
         // Drive 1
         m_id = 0;
         motor_speed = can.get_motor_attribute(CAN_1, m_id, MotorAttribute::SPEED);
         drive.setpoint = (-y+x+s) * 9000;
         drive.measurement = motor_speed;
-        output = drive.filter(0.001);
+        output = drive.filter(0.001) * power_limit_ratio;
         can.write_motor_norm(CAN_1, m_id, C620, output);
 
         // Drive 2
@@ -184,7 +203,7 @@ int main() {
         motor_speed = can.get_motor_attribute(CAN_1, m_id, MotorAttribute::SPEED);
         drive.setpoint = (-y-x+s) * 9000;
         drive.measurement = motor_speed;
-        output = drive.filter(0.001);
+        output = drive.filter(0.001) * power_limit_ratio;
         can.write_motor_norm(CAN_1, m_id, C620, output);
 
         // Drive 3
@@ -192,7 +211,7 @@ int main() {
         motor_speed = can.get_motor_attribute(CAN_1, m_id, MotorAttribute::SPEED);
         drive.setpoint = (y-x+s) * 9000;
         drive.measurement = motor_speed;
-        output = drive.filter(0.001);
+        output = drive.filter(0.001) * power_limit_ratio;
         can.write_motor_norm(CAN_1, m_id, C620, output);
 
         // Drive 4
@@ -200,7 +219,7 @@ int main() {
         motor_speed = can.get_motor_attribute(CAN_1, m_id, MotorAttribute::SPEED);
         drive.setpoint = (y+x+s) * 9000;
         drive.measurement = motor_speed;
-        output = drive.filter(0.001);
+        output = drive.filter(0.001) * power_limit_ratio;
         can.write_motor_norm(CAN_1, m_id, C620, output);
 
         // Yaw
