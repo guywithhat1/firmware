@@ -118,6 +118,11 @@ float wrap_angle(float angle) {
 	return angle;
 }
 
+void rotate_2D(float* v, float* v_tf, float angle) {
+	v_tf[0] = (v[0] * cos(angle)) - (v[1] * sin(angle));
+	v_tf[1] = (v[0] * sin(angle)) + (v[1] * cos(angle));
+}
+
 // Master loop
 int main() {
     Serial.begin(1000000); // the serial monitor is actually always active (for debug use Serial.println & tycmd)
@@ -174,9 +179,14 @@ int main() {
         // Serial.printf("yaw enc: %f     pitch enc: %f\n", yaw_raw, pitch_raw);
 
         // Read DR16
-        float x = -dr16.get_l_stick_x();
-        float y = -dr16.get_l_stick_y();
+        float drive_raw[2] = {0};
+        drive_raw[0] = -dr16.get_l_stick_x();
+        drive_raw[1] = -dr16.get_l_stick_y();
         float s = dr16.get_wheel();
+        float drive_rot[2] = {0};
+        rotate_2D(drive_raw, drive_rot, yaw_ref+(3.14159/4.0));
+        float x = drive_rot[0];
+        float y = drive_rot[1];
         float pitch_js = dr16.get_r_stick_y();
         float yaw_js = dr16.get_r_stick_x();
 
