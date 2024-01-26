@@ -177,7 +177,7 @@ int main() {
         float pitch_raw = read_enc(nCS_pitch);
         float pitch_ref = wrap_angle(pitch_raw - PITCH_ZERO_ANGLE);
         // Serial.printf("yaw enc: %f     pitch enc: %f\n", yaw_raw, pitch_raw);
-
+        
         // Read DR16
         float drive_raw[2] = {0};
         drive_raw[0] = -dr16.get_l_stick_x();
@@ -185,10 +185,18 @@ int main() {
         float s = dr16.get_wheel();
         float drive_rot[2] = {0};
         rotate_2D(drive_raw, drive_rot, yaw_ref+(3.14159/4.0));
-        float x = drive_rot[0];
+        float x = drive_rot[0]+dr16.get;
         float y = drive_rot[1];
         float pitch_js = dr16.get_r_stick_y();
         float yaw_js = dr16.get_r_stick_x();
+
+        bool w = dr16.keys.w;
+        bool a = dr16.keys.a;
+        bool s = dr16.keys.s
+        bool d = dr16.keys.d
+
+        int mouse_x = dr16.get_mouse_x();
+        int mouse_y = dr16.get_mouse_y();
 
         // Power limiting
         float power_buffer = ref.data.power_heat.buffer_energy;
