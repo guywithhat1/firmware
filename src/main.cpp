@@ -180,7 +180,7 @@ int main() {
         can.read();
         ref.read();
         if (!(loopc % 1)) imu.read();
-        imu.print();
+        // imu.print();
 
         float yaw_raw = read_enc(nCS_yaw);
         float yaw_ref = wrap_angle(yaw_raw - YAW_ZERO_ANGLE);
@@ -207,7 +207,6 @@ int main() {
         float y = drive_rot[1] + d_key - a_key;
         float pitch_js = dr16.get_r_stick_y() + (mouse_x * MOUSE_SENSITIVITY);
         float yaw_js = dr16.get_r_stick_x() + (mouse_y * MOUSE_SENSITIVITY);
-       
 
         // Power limiting
         float power_buffer = ref.data.power_heat.buffer_energy;

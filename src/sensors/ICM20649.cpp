@@ -18,7 +18,9 @@ void ICM20649::init(CommunicationProtocol protocol) {
         break;
     case SPI:
         // start SPI communication
-        if (!sensor.begin_SPI(ICM_CS, ICM_SCK, ICM_MISO, ICM_MOSI)) {
+        int a = sensor.begin_SPI(ICM_CS, ICM_SCK, ICM_MISO, ICM_MOSI);
+        Serial.println(a);
+        if (!a) {
             Serial.println("Failed to begin SPI");
         }
         break;
