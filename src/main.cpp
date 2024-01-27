@@ -192,7 +192,7 @@ int main() {
         float drive_raw[2] = {0};
         drive_raw[0] = -dr16.get_l_stick_x();
         drive_raw[1] = -dr16.get_l_stick_y();
-        float s = dr16.get_wheel();
+        float s = dr16.get_wheel() + (dr16.keys.shift ? 0.75 : 0);
         float drive_rot[2] = {0};
         rotate_2D(drive_raw, drive_rot, yaw_ref+(3.14159/4.0));
         float x = drive_rot[0] + w - s
