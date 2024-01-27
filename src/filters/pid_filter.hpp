@@ -1,7 +1,7 @@
-#include "math.h"
-
 #ifndef PID_FILTER_H
 #define PID_FILTER_H
+
+#include "cmath"
 
 struct PIDFilter {
     float K[4] = {0.0}; // P, I, D, F

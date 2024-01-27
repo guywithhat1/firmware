@@ -7,7 +7,7 @@
 #include "sensors/RefSystem.hpp"
 #include "sensors/ICM20649.hpp"
 #include "filters/pid_filter.hpp"
-
+// #include "utils/vector_math.hpp"
 
 // ENCODER
 #define MT6835_OP_READ  0b0011
@@ -71,9 +71,65 @@ PIDFilter flywheel;
 PIDFilter pitch;
 PIDFilter yaw;
 
+void __rotate2D(float* v, float* v_tf, float angle)
+{
+    v_tf[0] = (v[0] * cos(angle)) - (v[1] * sin(angle));
+    v_tf[1] = (v[0] * sin(angle)) + (v[1] * cos(angle));
+}
+
+void __rotate2D3D(float* v, float* v_tf, float angle)
+{
+    v_tf[0] = v[0];
+    v_tf[1] = (v[1] * cos(angle)) - (v[2] * sin(angle));
+    v_tf[2] = (v[1] * sin(angle)) + (v[2] * cos(angle));
+}
+
+float __vectorProduct(float* a, float* b, int n)
+{
+    float product = 0;
+    for (int i = 0; i < n; i++)
+    {
+        product += a[i] * b[i];
+    }
+    return product;
+}
+
+float __crossProduct2D(float* a, float* b)
+{
+    return (a[0] * b[1]) - (a[1] * b[0]);
+}
+
+float __magnitude(float* a, int n)
+{
+    float square_sum = 0;
+    for (int i; i < n;i++)
+    {
+        square_sum += powf(a[i], 2);
+    }
+    return square_sum;
+}
+
+void __weightedVectorAddition(float* a, float* b, float k1, float k2, int n, float* output)
+{
+    for (int i = 0; i < n; i++)
+    {
+        output[i] = (k1 * a[i]) + (k2 * b[i]);
+    }
+}
+
+void __nWeightedVectorAddition(float* a, float* b, float* k1, float* k2, int n, float* output)
+{
+    for (int i = 0; i < n; i++)
+    {
+        output[i] = (k1[i] * a[i]) + (k2[i] * b[i]);
+    }
+}
+
 // DONT put anything else in this function. It is not a setup function
-void print_logo() {
-    if (Serial) {
+void print_logo()
+{
+    if (Serial)
+    {
         Serial.println("TEENSY SERIAL START\n\n");
         Serial.print("\033[1;33m");
         Serial.println("                  .:^!?!^.                        ");
@@ -103,9 +159,10 @@ void print_logo() {
     }
 }
 
-float read_enc(int nCS) {
-    uint8_t data[6] = {0}; // transact 48 bits
-    data[0] = (MT6835_OP_ANGLE<<4);
+float read_enc(int nCS)
+{
+    uint8_t data[6] = { 0 }; // transact 48 bits
+    data[0] = (MT6835_OP_ANGLE << 4);
     data[1] = MT6835_REG_ANGLE1;
     SPI.beginTransaction(settings);
     digitalWrite(nCS, LOW);
@@ -113,25 +170,28 @@ float read_enc(int nCS) {
     digitalWrite(nCS, HIGH);
     SPI.endTransaction();
     int raw_angle = (data[2] << 13) | (data[3] << 5) | (data[4] >> 3);
-    float radians = raw_angle / (float)MT6835_CPR * (3.14159265*2.0);
-    float degrees = radians * (180/3.14159265);
+    float radians = raw_angle / (float)MT6835_CPR * (3.14159265 * 2.0);
+    float degrees = radians * (180 / 3.14159265);
     // Serial.printf("nCS: %d      %d raw      %0.8f degrees      %0.8f radians\n", nCS, raw_angle, degrees, radians);
     return radians;
 }
 
-float wrap_angle(float angle) {
-	while (angle >= 3.14159) angle -= 2 * PI;
-	while (angle < -3.14159) angle += 2 * PI;
-	return angle;
+float wrap_angle(float angle)
+{
+    while (angle >= 3.14159) angle -= 2 * PI;
+    while (angle < -3.14159) angle += 2 * PI;
+    return angle;
 }
 
-void rotate_2D(float* v, float* v_tf, float angle) {
-	v_tf[0] = (v[0] * cos(angle)) - (v[1] * sin(angle));
-	v_tf[1] = (v[0] * sin(angle)) + (v[1] * cos(angle));
+void rotate_2D(float* v, float* v_tf, float angle)
+{
+    v_tf[0] = (v[0] * cos(angle)) - (v[1] * sin(angle));
+    v_tf[1] = (v[0] * sin(angle)) + (v[1] * cos(angle));
 }
 
 // Master loop
-int main() {
+int main()
+{
     Serial.begin(1000000); // the serial monitor is actually always active (for debug use Serial.println & tycmd)
     print_logo();
 
@@ -140,15 +200,17 @@ int main() {
     dr16.init();
     can.init();
     ref.init();
-    imu.init(imu.CommunicationProtocol::SPI);
+    // imu.init(imu.CommunicationProtocol::SPI);
 
     // Encoder setup
     int nCS_yaw = 37; // 37 or 36 (enc 1, enc 2)
     int nCS_pitch = 36; // 37 or 36 (enc 1, enc 2)
     pinMode(nCS_yaw, OUTPUT);
     pinMode(nCS_pitch, OUTPUT);
+    pinMode(ICM_CS, OUTPUT);
     digitalWrite(nCS_yaw, HIGH);
     digitalWrite(nCS_pitch, HIGH);
+    digitalWrite(ICM_CS, HIGH);
     Serial.println("Starting SPI");
     SPI.begin();
     Serial.println("SPI Started");
@@ -171,56 +233,98 @@ int main() {
     float m_id;
 
     long long loopc;
+    float accel_x;
+    float initial_accel_vector[3];
+    float initial_pitch_angle;
+    bool isCal = false;
 
-    // Main loop
-    while (true) {
+    // Main looppit
+    while (true)
+    {
         loopc++;
 
         dr16.read();
         can.read();
         ref.read();
-        if (!(loopc % 1)) imu.read();
+        // imu.read();
         // imu.print();
 
         float yaw_raw = read_enc(nCS_yaw);
         float yaw_ref = wrap_angle(yaw_raw - YAW_ZERO_ANGLE);
         float pitch_raw = read_enc(nCS_pitch);
         float pitch_ref = wrap_angle(pitch_raw - PITCH_ZERO_ANGLE);
+
+
+
         // Serial.printf("yaw enc: %f     pitch enc: %f\n", yaw_raw, pitch_raw);
-        
+        // if (!isCal)
+        // {
+        //     /*initial_accel_vector[0] = imu.get_accel_X();
+        //     initial_accel_vector[1] = imu.get_accel_Y();
+        //     initial_accel_vector[2] = imu.get_accel_Z();
+        //     inital_pitch_angle = pitch_ref; */
+        //     initial_accel_vector[0] = 0;
+        //     initial_accel_vector[1] = 0;
+        //     initial_accel_vector[2] = 1;
+        //     initial_pitch_angle = 1.57079;
+        //     isCal = true;
+        // }
+        // float pitch_diff = initial_pitch_angle - pitch_ref;
+        // float ground_pointing_unitvector[3] = { 0 };
+        // for (int i = 1;i < 3;i++)
+        // {
+        //     ground_pointing_unitvector[i] = initial_accel_vector[i] / __magnitude(initial_accel_vector, 3);
+        // }
+        // float ground_pointing_unitvector_rotated[3];
+        // __rotate2D3D(ground_pointing_unitvector, ground_pointing_unitvector_rotated, pitch_diff);
+        // float raw_omega_vector[3] = { imu.get_gyro_X(),imu.get_gyro_Y() ,imu.get_gyro_Z() };
+        // float yaw_omega = __vectorProduct(ground_pointing_unitvector_rotated, raw_omega_vector, 3);
+        // Serial.print(pitch_diff);
+        // Serial.print(" ");
+        // Serial.print(pitch_ref);
+        // Serial.print(" ");
+        // Serial.println(raw_omega_vector[2]);
         // Read DR16
-        bool w_key = dr16.keys.w;
-        bool a_key = dr16.keys.a;
-        bool s_key = dr16.keys.s;
-        bool d_key = dr16.keys.d;
+        bool w_key = dr16.keys.w * 0.5;
+        bool a_key = dr16.keys.a * 0.5;
+        bool s_key = dr16.keys.s * 0.5;
+        bool d_key = dr16.keys.d * 0.5;
 
         int mouse_x = dr16.get_mouse_x();
         int mouse_y = dr16.get_mouse_y();
 
-        float drive_raw[2] = {0};
-        drive_raw[0] = -dr16.get_l_stick_x();
-        drive_raw[1] = -dr16.get_l_stick_y();
-        float s = dr16.get_wheel() + (dr16.keys.shift ? 0.75 : 0);
-        float drive_rot[2] = {0};
-        rotate_2D(drive_raw, drive_rot, yaw_ref+(3.14159/4.0));
-        float x = drive_rot[0] + w_key - s_key;
-        float y = drive_rot[1] + d_key - a_key;
-        float pitch_js = dr16.get_r_stick_y() + (mouse_x * MOUSE_SENSITIVITY);
-        float yaw_js = dr16.get_r_stick_x() + (mouse_y * MOUSE_SENSITIVITY);
+        float drive_raw[2] = { 0 };
+        drive_raw[0] = -dr16.get_l_stick_x() - d_key + a_key;
+        drive_raw[1] = -dr16.get_l_stick_y() - w_key + s_key;
+        float s = dr16.get_wheel() + 0.2 + (dr16.keys.shift ? 0.4 : 0);
+        float drive_rot[2] = { 0 };
+        rotate_2D(drive_raw, drive_rot, yaw_ref + (3.14159 / 4.0));
+        float x = drive_rot[0];
+        float y = drive_rot[1];
+        float pitch_js = dr16.get_r_stick_y() - (mouse_y * MOUSE_SENSITIVITY * 3.5);
+        float yaw_js = dr16.get_r_stick_x() + (mouse_x * MOUSE_SENSITIVITY);
 
         // Power limiting
         float power_buffer = ref.data.power_heat.buffer_energy;
         float power_limit_ratio = 1.0;
         float power_buffer_limit_thresh = 60.0;
-	    float power_buffer_critical_thresh = 30.0;
-        if (power_buffer < power_buffer_limit_thresh) {
+        float power_buffer_critical_thresh = 30.0;
+        if (power_buffer < power_buffer_limit_thresh)
+        {
             power_limit_ratio = constrain((power_buffer - power_buffer_critical_thresh) / power_buffer_limit_thresh, 0.0, 1.0);
         }
+
+        float d1 = fabs(-y + x + s);
+        float d2 = fabs(-y - x + s);
+        float d3 = fabs(y - x + s);
+        float d4 = fabs(y + x + s);
+        float mmax = max(max(d1, d2), max(d3, d4));
+        if (mmax < 1) mmax = 1;
 
         // Drive 1
         m_id = 0;
         motor_speed = can.get_motor_attribute(CAN_1, m_id, MotorAttribute::SPEED);
-        drive.setpoint = (-y+x+s) * 9000;
+        drive.setpoint = ((-y + x + s) / mmax) * 9000;
         drive.measurement = motor_speed;
         output = drive.filter(0.001) * power_limit_ratio;
         can.write_motor_norm(CAN_1, m_id, C620, output);
@@ -228,7 +332,7 @@ int main() {
         // Drive 2
         m_id = 1;
         motor_speed = can.get_motor_attribute(CAN_1, m_id, MotorAttribute::SPEED);
-        drive.setpoint = (-y-x+s) * 9000;
+        drive.setpoint = ((-y - x + s) / mmax) * 9000;
         drive.measurement = motor_speed;
         output = drive.filter(0.001) * power_limit_ratio;
         can.write_motor_norm(CAN_1, m_id, C620, output);
@@ -236,7 +340,7 @@ int main() {
         // Drive 3
         m_id = 2;
         motor_speed = can.get_motor_attribute(CAN_1, m_id, MotorAttribute::SPEED);
-        drive.setpoint = (y-x+s) * 9000;
+        drive.setpoint = ((y - x + s) / mmax) * 9000;
         drive.measurement = motor_speed;
         output = drive.filter(0.001) * power_limit_ratio;
         can.write_motor_norm(CAN_1, m_id, C620, output);
@@ -244,7 +348,7 @@ int main() {
         // Drive 4
         m_id = 3;
         motor_speed = can.get_motor_attribute(CAN_1, m_id, MotorAttribute::SPEED);
-        drive.setpoint = (y+x+s) * 9000;
+        drive.setpoint = ((y + x + s) / mmax) * 9000;
         drive.measurement = motor_speed;
         output = drive.filter(0.001) * power_limit_ratio;
         can.write_motor_norm(CAN_1, m_id, C620, output);
@@ -252,7 +356,7 @@ int main() {
         // Yaw
         m_id = 4;
         motor_speed = can.get_motor_attribute(CAN_1, m_id, MotorAttribute::SPEED) * 0.05105105105;
-        yaw.setpoint = yaw_js*300;
+        yaw.setpoint = yaw_js * 300 + s * 270 - (sqrt(fabs(x * x) + fabs(y * y)) * 15);
         yaw.measurement = motor_speed;
         output = yaw.filter(0.001, false);
         can.write_motor_norm(CAN_1, m_id, C620, output);
@@ -263,24 +367,24 @@ int main() {
         m_id = 0;
         float clampLow = 1.309; // 1.4
         float clampHigh = 1.88496; //1.7
-        float pitchConstant = 0.17*sin(pitch_ref);
+        float pitchConstant = 0.17 * sin(pitch_ref);
         motor_speed = can.get_motor_attribute(CAN_2, m_id, MotorAttribute::SPEED);
         pitch.setpoint = -pitch_js * 1000;
         pitch.measurement = motor_speed;
         output = pitch.filter(0.001, false) + pitchConstant;
-        
+
         // if((pitch_ref > clampHigh && output>0) || (pitch_ref < clampLow && output < 0)){
         //     continue;
         // } else{
         can.write_motor_norm(CAN_2, m_id, C620, output);
-         m_id = 1;
+        m_id = 1;
         can.write_motor_norm(CAN_2, m_id, C620, -output);
         // }
 
         // Feeder
         m_id = 4;
         motor_speed = can.get_motor_attribute(CAN_2, m_id, MotorAttribute::SPEED) / 36.0;
-        feeder.setpoint = (dr16.get_r_switch() == 1 ? 100 : 0);
+        feeder.setpoint = ((dr16.get_r_switch() == 1 || dr16.get_l_mouse_button()) ? 100 : 0);
         feeder.measurement = motor_speed;
         float output = feeder.filter(0.001);
         can.write_motor_norm(CAN_2, m_id, C610, output);
@@ -289,7 +393,7 @@ int main() {
         // Flywheel 1
         m_id = 2;
         motor_speed = can.get_motor_attribute(CAN_2, m_id, MotorAttribute::SPEED);
-        flywheel.setpoint = (dr16.get_r_switch() != 2 ? -9000 : 0);
+        flywheel.setpoint = -9000;
         flywheel.measurement = motor_speed;
         output = flywheel.filter(0.001);
         can.write_motor_norm(CAN_2, m_id, C620, output);
@@ -303,21 +407,24 @@ int main() {
         can.write_motor_norm(CAN_2, m_id, C620, output);
 
         // Write to actuators
-        if (!dr16.is_connected() || dr16.get_l_switch() == 1) {
-            // SAFETY ON
-            // TODO: Reset all controller integrators here
+        if (!dr16.is_connected() || dr16.get_l_switch() == 1)
+        {
+// SAFETY ON
+// TODO: Reset all controller integrators here
             can.zero();
-        } else if (dr16.is_connected() && dr16.get_l_switch() != 1) {
-            // SAFETY OFF
+        }
+        else if (dr16.is_connected() && dr16.get_l_switch() != 1)
+        {
+// SAFETY OFF
             can.write();
         }
 
         // LED heartbeat -- linked to loop count to reveal slowdowns and freezes.
-        loopc % (int)(1E3/float(HEARTBEAT_FREQ)) < (int)(1E3/float(5*HEARTBEAT_FREQ)) ? digitalWrite(13, HIGH) : digitalWrite(13, LOW);
+        loopc % (int)(1E3 / float(HEARTBEAT_FREQ)) < (int)(1E3 / float(5 * HEARTBEAT_FREQ)) ? digitalWrite(13, HIGH) : digitalWrite(13, LOW);
         loopc++;
 
         // Keep the loop running at the desired rate
-        loop_timer.delay_micros((int)(1E6/(float)(LOOP_FREQ)));
+        loop_timer.delay_micros((int)(1E6 / (float)(LOOP_FREQ)));
     }
 
     return 0;
