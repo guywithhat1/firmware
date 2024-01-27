@@ -130,7 +130,7 @@ int main() {
     Serial.begin(1000000); // the serial monitor is actually always active (for debug use Serial.println & tycmd)
     print_logo();
 
-    // initialize any 'setup' functions here
+    // Execute setup functions
     pinMode(13, OUTPUT);
     dr16.init();
     can.init();
@@ -167,7 +167,7 @@ int main() {
 
     long long loopc;
 
-    // main loop
+    // Main loop
     while (true) {
         loopc++;
 
@@ -286,18 +286,19 @@ int main() {
         // Write to actuators
         if (!dr16.is_connected() || dr16.get_l_switch() == 1) {
             // SAFETY ON
+            // TODO: Reset all controller integrators here
             can.zero();
-            can.zero_motors();
         } else if (dr16.is_connected() && dr16.get_l_switch() != 1) {
             // SAFETY OFF
             can.write();
         }
 
-        // LED heartbeat
-        millis() % 500 < 100 ? digitalWrite(13, HIGH) : digitalWrite(13, LOW);
+        // LED heartbeat -- linked to loop count to reveal slowdowns and freezes.
+        loopc % (int)(1E3/float(HEARTBEAT_FREQ)) < (int)(1E3/float(5*HEARTBEAT_FREQ)) ? digitalWrite(13, HIGH) : digitalWrite(13, LOW);
+        loopc++;
 
-        // Keep the loop running at 1kHz
-        loop_timer.delay_millis(1);
+        // Keep the loop running at the desired rate
+        loop_timer.delay_micros((int)(1E6/(float)(LOOP_FREQ)));
     }
 
     return 0;
