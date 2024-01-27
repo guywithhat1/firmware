@@ -5,6 +5,7 @@
 #include "comms/rm_can.hpp"
 #include "sensors/dr16.hpp"
 #include "sensors/RefSystem.hpp"
+#include "sensors/LSM6DSOX.hpp"
 #include "filters/pid_filter.hpp"
 
 
@@ -52,6 +53,7 @@
 DR16 dr16;
 rm_CAN can;
 RefSystem ref;
+LSM6DOX imu;
 
 static SPISettings settings(1000000, MT6835_BITORDER, SPI_MODE3);
 
@@ -133,6 +135,7 @@ int main() {
     dr16.init();
     can.init();
     ref.init();
+    imu.init();
 
     // Encoder setup
     int nCS_yaw = 37; // 37 or 36 (enc 1, enc 2)
@@ -170,7 +173,9 @@ int main() {
 
         dr16.read();
         can.read();
-        if (!(loopc % 1)) ref.read();
+        ref.read();
+        if (!(loopc % 5)) imu.read();
+        imu.print();
 
         float yaw_raw = read_enc(nCS_yaw);
         float yaw_ref = wrap_angle(yaw_raw - YAW_ZERO_ANGLE);
@@ -198,7 +203,6 @@ int main() {
         if (power_buffer < power_buffer_limit_thresh) {
             power_limit_ratio = constrain((power_buffer - power_buffer_critical_thresh) / power_buffer_limit_thresh, 0.0, 1.0);
         }
-        Serial.println(power_buffer);
 
         // Drive 1
         m_id = 0;
