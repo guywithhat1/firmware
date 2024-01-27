@@ -5,7 +5,7 @@
 #include "comms/rm_can.hpp"
 #include "sensors/dr16.hpp"
 #include "sensors/RefSystem.hpp"
-#include "sensors/LSM6DSOX.hpp"
+#include "sensors/ICM20649.hpp"
 #include "filters/pid_filter.hpp"
 
 
@@ -49,11 +49,14 @@
 #define PITCH_ZERO_ANGLE 0.67928569282
 #define YAW_ZERO_ANGLE   4.99714899
 
+#define LOOP_FREQ 1000
+#define HEARTBEAT_FREQ 2
+
 // declare any 'global' variables here
 DR16 dr16;
 rm_CAN can;
 RefSystem ref;
-LSM6DOX imu;
+ICM20649 imu;
 
 static SPISettings settings(1000000, MT6835_BITORDER, SPI_MODE3);
 
@@ -135,7 +138,7 @@ int main() {
     dr16.init();
     can.init();
     ref.init();
-    imu.init();
+    imu.init(imu.CommunicationProtocol::SPI);
 
     // Encoder setup
     int nCS_yaw = 37; // 37 or 36 (enc 1, enc 2)
@@ -174,7 +177,7 @@ int main() {
         dr16.read();
         can.read();
         ref.read();
-        if (!(loopc % 5)) imu.read();
+        if (!(loopc % 1)) imu.read();
         imu.print();
 
         float yaw_raw = read_enc(nCS_yaw);
