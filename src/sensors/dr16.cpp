@@ -206,10 +206,10 @@ int DR16::get_mouse_x(){
 	return mouse_x;
 }
 
-int DR16::get_l_mouse_button(){
+bool DR16::get_l_mouse_button(){
 	return l_mouse_button;
 }
 
-int DR16::get_r_mouse_button(){
-	return r_mouse_button
+bool DR16::get_r_mouse_button() {
+	return r_mouse_button;
 }

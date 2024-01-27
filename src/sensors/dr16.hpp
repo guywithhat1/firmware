@@ -121,9 +121,9 @@ public:
 	/// @brief Prints the raw 18-byte packet from the receiver
 	void print_raw();
 
-	int16_t get_mouse_y();
+	int get_mouse_x();
 
-	int16_t get_mouse_y();
+	int get_mouse_y();
 
 	bool get_l_mouse_button();
 	

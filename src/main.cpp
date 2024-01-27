@@ -191,8 +191,8 @@ int main() {
         // Read DR16
         bool w_key = dr16.keys.w;
         bool a_key = dr16.keys.a;
-        bool s_key = dr16.keys.s
-        bool d_key = dr16.keys.d
+        bool s_key = dr16.keys.s;
+        bool d_key = dr16.keys.d;
 
         int mouse_x = dr16.get_mouse_x();
         int mouse_y = dr16.get_mouse_y();
@@ -203,8 +203,8 @@ int main() {
         float s = dr16.get_wheel() + (dr16.keys.shift ? 0.75 : 0);
         float drive_rot[2] = {0};
         rotate_2D(drive_raw, drive_rot, yaw_ref+(3.14159/4.0));
-        float x = drive_rot[0] + w - s
-        float y = drive_rot[1] + d - a;
+        float x = drive_rot[0] + w_key - s_key;
+        float y = drive_rot[1] + d_key - a_key;
         float pitch_js = dr16.get_r_stick_y() + (mouse_x * MOUSE_SENSITIVITY);
         float yaw_js = dr16.get_r_stick_x() + (mouse_y * MOUSE_SENSITIVITY);
        
