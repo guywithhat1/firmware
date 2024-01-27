@@ -42,6 +42,8 @@
 #define MT6835_REG_CAL_STATUS 0x113
 #define MT6835_BITORDER MSBFIRST
 
+#define MOUSE_SENSITIVITY 0.001
+
 
 // pitch zero 0.6195919 rad
 // yaw zero   4.99714899 rad
@@ -179,24 +181,25 @@ int main() {
         // Serial.printf("yaw enc: %f     pitch enc: %f\n", yaw_raw, pitch_raw);
         
         // Read DR16
+        bool w_key = dr16.keys.w;
+        bool a_key = dr16.keys.a;
+        bool s_key = dr16.keys.s
+        bool d_key = dr16.keys.d
+
+        int mouse_x = dr16.get_mouse_x();
+        int mouse_y = dr16.get_mouse_y();
+
         float drive_raw[2] = {0};
         drive_raw[0] = -dr16.get_l_stick_x();
         drive_raw[1] = -dr16.get_l_stick_y();
         float s = dr16.get_wheel();
         float drive_rot[2] = {0};
         rotate_2D(drive_raw, drive_rot, yaw_ref+(3.14159/4.0));
-        float x = drive_rot[0]+dr16.get;
-        float y = drive_rot[1];
-        float pitch_js = dr16.get_r_stick_y();
-        float yaw_js = dr16.get_r_stick_x();
-
-        bool w = dr16.keys.w;
-        bool a = dr16.keys.a;
-        bool s = dr16.keys.s
-        bool d = dr16.keys.d
-
-        int mouse_x = dr16.get_mouse_x();
-        int mouse_y = dr16.get_mouse_y();
+        float x = drive_rot[0] + w - s
+        float y = drive_rot[1] + d - a;
+        float pitch_js = dr16.get_r_stick_y() + (mouse_x * MOUSE_SENSITIVITY);
+        float yaw_js = dr16.get_r_stick_x() + (mouse_y * MOUSE_SENSITIVITY);
+       
 
         // Power limiting
         float power_buffer = ref.data.power_heat.buffer_energy;
@@ -252,16 +255,21 @@ int main() {
 
         // Pitch
         m_id = 0;
-        float clampLow = 1.309f;
-        float clampHigh = 1.88496f;
+        float clampLow = 1.309; // 1.4
+        float clampHigh = 1.88496; //1.7
         float pitchConstant = 0.17*sin(pitch_ref);
         motor_speed = can.get_motor_attribute(CAN_2, m_id, MotorAttribute::SPEED);
         pitch.setpoint = -pitch_js * 1000;
         pitch.measurement = motor_speed;
         output = pitch.filter(0.001, false) + pitchConstant;
+        
+        // if((pitch_ref > clampHigh && output>0) || (pitch_ref < clampLow && output < 0)){
+        //     continue;
+        // } else{
         can.write_motor_norm(CAN_2, m_id, C620, output);
-        m_id = 1;
+         m_id = 1;
         can.write_motor_norm(CAN_2, m_id, C620, -output);
+        // }
 
         // Feeder
         m_id = 4;
@@ -270,6 +278,7 @@ int main() {
         feeder.measurement = motor_speed;
         float output = feeder.filter(0.001);
         can.write_motor_norm(CAN_2, m_id, C610, output);
+
 
         // Flywheel 1
         m_id = 2;

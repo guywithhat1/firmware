@@ -125,6 +125,10 @@ public:
 
 	int16_t get_mouse_y();
 
+	bool get_l_mouse_button();
+	
+	bool get_r_mouse_button();
+
 
 
 private:
@@ -143,6 +147,9 @@ private:
 
 	int16_t mouse_x;
 	int16_t mouse_y;
+
+	bool l_mouse_button;
+	bool r_mouse_button;
 
 public:
 
