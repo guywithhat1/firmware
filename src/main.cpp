@@ -194,7 +194,7 @@ int main() {
     Serial.begin(1000000); // the serial monitor is actually always active (for debug use Serial.println & tycmd)
     print_logo();
 
-    // Execute setup functions
+    // Execute setup functions yo
     pinMode(13, OUTPUT);
     dr16.init();
     can.init();
