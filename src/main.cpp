@@ -190,8 +190,7 @@ void rotate_2D(float* v, float* v_tf, float angle)
 }
 
 // Master loop
-int main()
-{
+int main() {
     Serial.begin(1000000); // the serial monitor is actually always active (for debug use Serial.println & tycmd)
     print_logo();
 
@@ -409,8 +408,8 @@ int main()
         // Write to actuators
         if (!dr16.is_connected() || dr16.get_l_switch() == 1)
         {
-// SAFETY ON
-// TODO: Reset all controller integrators here
+            // SAFETY ON
+            // TODO: Reset all controller integrators here
             can.zero();
         }
         else if (dr16.is_connected() && dr16.get_l_switch() != 1)
