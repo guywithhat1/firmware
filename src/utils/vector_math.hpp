@@ -9,13 +9,6 @@ void rotate2D(float* v, float* v_tf, float angle)
 	v_tf[1] = (v[0] * sin(angle)) + (v[1] * cos(angle));
 }
 
-void rotate2D3D(float* v, float* v_tf, float angle)
-{
-	v_tf[0] = v[0];
-	v_tf[1] = (v[1] * cos(angle)) - (v[2] * sin(angle));
-	v_tf[2] = (v[1] * sin(angle)) + (v[2] * cos(angle));
-}
-
 float vectorProduct(float* a, float* b, int n)
 {
 	int product = 0;

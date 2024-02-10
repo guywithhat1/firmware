@@ -232,10 +232,6 @@ int main() {
     float m_id;
 
     long long loopc;
-    float accel_x;
-    float initial_accel_vector[3];
-    float initial_pitch_angle;
-    bool isCal = false;
 
     // Main looppit
     while (true)
@@ -253,36 +249,22 @@ int main() {
         float pitch_raw = read_enc(nCS_pitch);
         float pitch_ref = wrap_angle(pitch_raw - PITCH_ZERO_ANGLE);
 
-
-
         // Serial.printf("yaw enc: %f     pitch enc: %f\n", yaw_raw, pitch_raw);
-        // if (!isCal)
-        // {
-        //     /*initial_accel_vector[0] = imu.get_accel_X();
-        //     initial_accel_vector[1] = imu.get_accel_Y();
-        //     initial_accel_vector[2] = imu.get_accel_Z();
-        //     inital_pitch_angle = pitch_ref; */
-        //     initial_accel_vector[0] = 0;
-        //     initial_accel_vector[1] = 0;
-        //     initial_accel_vector[2] = 1;
-        //     initial_pitch_angle = 1.57079;
-        //     isCal = true;
-        // }
-        // float pitch_diff = initial_pitch_angle - pitch_ref;
-        // float ground_pointing_unitvector[3] = { 0 };
-        // for (int i = 1;i < 3;i++)
-        // {
-        //     ground_pointing_unitvector[i] = initial_accel_vector[i] / __magnitude(initial_accel_vector, 3);
-        // }
-        // float ground_pointing_unitvector_rotated[3];
-        // __rotate2D3D(ground_pointing_unitvector, ground_pointing_unitvector_rotated, pitch_diff);
-        // float raw_omega_vector[3] = { imu.get_gyro_X(),imu.get_gyro_Y() ,imu.get_gyro_Z() };
-        // float yaw_omega = __vectorProduct(ground_pointing_unitvector_rotated, raw_omega_vector, 3);
-        // Serial.print(pitch_diff);
-        // Serial.print(" ");
-        // Serial.print(pitch_ref);
-        // Serial.print(" ");
-        // Serial.println(raw_omega_vector[2]);
+        
+        // Imu offset code
+        float initial_accel_vector[3] = {0,0,1};
+        float initial_pitch_angle = 1.57079;
+            
+        float pitch_diff = initial_pitch_angle - pitch_ref;
+        float ground_pointing_unitvector[3] = { 0 };
+        
+        ground_pointing_unitvector[0] = __magnitude(initial_accel_vector, 3);
+        ground_pointing_unitvector[1] = atan(initial_accel_vector[0]/initial_accel_vector[1]);
+        ground_pointing_unitvector[2] = acos(initial_accel_vector[2]/ground_pointing_unitvector[0])+pitch_diff;
+        
+        float raw_omega_vector[3] = { imu.get_gyro_X(),imu.get_gyro_Y() ,imu.get_gyro_Z() };
+        float yaw_omega = __vectorProduct(ground_pointing_unitvector, raw_omega_vector, 3);
+
         // Read DR16
         bool w_key = dr16.keys.w * 0.5;
         bool a_key = dr16.keys.a * 0.5;
