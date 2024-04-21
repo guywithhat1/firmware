@@ -32,10 +32,10 @@
 #include "HardwareSerial.h"
 
 #ifndef SERIAL7_TX_BUFFER_SIZE
-#define SERIAL7_TX_BUFFER_SIZE     40 // number of outgoing bytes to buffer
+#define SERIAL7_TX_BUFFER_SIZE     4096 // number of outgoing bytes to buffer
 #endif
 #ifndef SERIAL7_RX_BUFFER_SIZE
-#define SERIAL7_RX_BUFFER_SIZE     64 // number of incoming bytes to buffer
+#define SERIAL7_RX_BUFFER_SIZE     4096 // number of incoming bytes to buffer
 #endif
 #define IRQ_PRIORITY  64  // 0 = highest priority, 255 = lowest
 
