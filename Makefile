@@ -9,8 +9,8 @@ TEENSY_LIB = teensy4
 
 # Used external libraries
 LIBRARY_DIR = libraries
-LIBRARY_SOURCE = libraries/Adafruit_BusIO/*.cpp libraries/Adafruit_ICM20X/*.cpp libraries/Adafruit_LIS3MDL/*.cpp libraries/Adafruit_LSM6DS/*.cpp libraries/Adafruit_Sensor/*.cpp libraries/FreqMeasureMulti/*.cpp libraries/SPI/*.cpp libraries/unity/*.c libraries/Wire/*.cpp
-LIBRARY_INCLUDE = -Ilibraries/Adafruit_BusIO -Ilibraries/Adafruit_ICM20X -Ilibraries/Adafruit_LIS3MDL -Ilibraries/Adafruit_LSM6DS -Ilibraries/Adafruit_Sensor -Ilibraries/FlexCAN_T4 -Ilibraries/FreqMeasureMulti -Ilibraries/SPI -Ilibraries/unity -Ilibraries/Wire
+LIBRARY_SOURCE = libraries/Adafruit_BusIO/*.cpp libraries/Adafruit_ICM20X/*.cpp libraries/Adafruit_LIS3MDL/*.cpp libraries/Adafruit_LSM6DS/*.cpp libraries/Adafruit_Sensor/*.cpp libraries/FreqMeasureMulti/*.cpp libraries/SPI/*.cpp libraries/unity/*.c libraries/Wire/*.cpp libraries/VL53L4CD/*.cpp
+LIBRARY_INCLUDE = -Ilibraries/Adafruit_BusIO -Ilibraries/Adafruit_ICM20X -Ilibraries/Adafruit_LIS3MDL -Ilibraries/Adafruit_LSM6DS -Ilibraries/Adafruit_Sensor -Ilibraries/FlexCAN_T4 -Ilibraries/FreqMeasureMulti -Ilibraries/SPI -Ilibraries/unity -Ilibraries/Wire -Ilibraries/VL53L4CD
 # name of the output lib file
 LIBRARY_LIB_NAME = liblibs.a
 # lib file name stripped of initial 'lib' and '.a'
