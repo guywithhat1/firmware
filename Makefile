@@ -38,10 +38,12 @@ COMPILER_C = ~/.arduino15/packages/teensy/tools/teensy-compile/5.4.1/arm/bin/arm
 OBJCOPY = ~/.arduino15/packages/teensy/tools/teensy-compile/5.4.1/arm/bin/arm-none-eabi-objcopy
 
 # targets are phony to force it to rebuild every time
-.PHONY: teensy libraries lib_all clean clean_objs clean_libs 
+.PHONY: lib_all lib_teensy lib_libs lib_libs_c lib_libs_cpp clean clean_objs clean_libs 
 .DEFAULT_GOAL = lib_all
 
-teensy:
+lib_all: lib_teensy lib_libs
+
+lib_teensy:
 	@echo [Building Teensy Core CPP]
 	@$(COMPILER_CPP) $(COMPILE_FLAGS) $(CPP_FLAGS) -c $(TEENSY_DIR)/*.cpp $(TEENSY_INCLUDE)
 	@echo [Building Teensy Core C]
@@ -52,17 +54,6 @@ teensy:
 	@rm *.o -f
 	@echo [Cleaning Up]
 
-libraries: 
-	@echo [Building Libraries]
-	@$(COMPILER_CPP) $(COMPILE_FLAGS) $(CPP_FLAGS) -c $(LIBRARY_SOURCE) $(LIBRARY_INCLUDE) $(TEENSY_INCLUDE) 
-	@echo [Assembling Static Library]
-	@ar rcs $(LIBRARY_LIB_NAME) *.o
-	@echo [$(LIBRARY_LIB_NAME) Created in $(PROJECT_DIR)]
-	@rm *.o -f
-	@echo [Cleaning Up]
-
-lib_all: clean teensy libraries
-
 lib_libs: lib_libs_c lib_libs_cpp
 	@echo [Assembling Static Library]
 	@ar rcs $(LIBRARY_LIB_NAME) *.o
@@ -71,13 +62,12 @@ lib_libs: lib_libs_c lib_libs_cpp
 	@echo [Cleaning Up]
 
 lib_libs_cpp:
-	@echo [Building Libraries]
-	$(COMPILER_CPP) $(COMPILE_FLAGS) $(CPP_FLAGS) -c $(LIBRARY_SOURCE_CPP) $(LIBRARY_INCLUDE) $(TEENSY_INCLUDE) 
+	@echo [Building Libraries CPP]
+	@$(COMPILER_CPP) $(COMPILE_FLAGS) $(CPP_FLAGS) -c $(LIBRARY_SOURCE_CPP) $(LIBRARY_INCLUDE) $(TEENSY_INCLUDE) 
 
 lib_libs_c:
-	@echo [Building Libraries]
-	$(COMPILER_C) $(COMPILE_FLAGS) -c $(LIBRARY_SOURCE_C) $(LIBRARY_INCLUDE) $(TEENSY_INCLUDE)
-
+	@echo [Building Libraries C]
+	@$(COMPILER_C) $(COMPILE_FLAGS) -c $(LIBRARY_SOURCE_C) $(LIBRARY_INCLUDE) $(TEENSY_INCLUDE)
 	
 clean_objs:
 	@rm *.o -f
